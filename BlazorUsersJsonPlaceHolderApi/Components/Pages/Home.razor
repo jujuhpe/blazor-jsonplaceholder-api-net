@@ -1,0 +1,73 @@
+@page "/"
+@using BlazorUsersJsonPlaceHolderApi.Models
+@inject IHttpClientFactory ClientFactory
+
+<PageTitle>Consulta de usuário</PageTitle>
+
+<main>
+    <h1>Consulta de usuário</h1>
+    <p>Aluna: Julia Andrade Silva | 2º período</p>
+    <p>Primeira pessoa retornada pela API JSONPlaceholder.</p>
+
+    @if (!string.IsNullOrEmpty(mensagem))
+    {
+        <p role="alert">@mensagem</p>
+    }
+    else if (primeiroUsuario is null)
+    {
+        <p>Carregando dados...</p>
+    }
+    else
+    {
+        <p><strong>Nome:</strong> @primeiroUsuario.Name</p>
+        <p><strong>Cidade:</strong> @primeiroUsuario.Address.City</p>
+        <p><strong>Empresa:</strong> @primeiroUsuario.Company.Name</p>
+        <p>Os dados também foram impressos no console da aplicação.</p>
+    }
+</main>
+
+@code {
+    private Usuario? primeiroUsuario;
+    private string mensagem = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            using var http = ClientFactory.CreateClient();
+
+            // O endpoint retorna uma lista de usuários.
+            var usuarios = await http.GetFromJsonAsync<List<Usuario>>(
+                "https://jsonplaceholder.typicode.com/users");
+
+            if (usuarios is null || usuarios.Count == 0)
+            {
+                mensagem = "A API não retornou usuários.";
+                Console.WriteLine(mensagem);
+                return;
+            }
+
+            // O índice zero corresponde à primeira pessoa da lista.
+            primeiroUsuario = usuarios[0];
+
+            Console.WriteLine($"Nome: {primeiroUsuario.Name}");
+            Console.WriteLine($"Cidade: {primeiroUsuario.Address.City}");
+            Console.WriteLine($"Empresa: {primeiroUsuario.Company.Name}");
+        }
+        catch (HttpRequestException)
+        {
+            mensagem = "Não foi possível consultar a API. Verifique sua conexão.";
+            Console.WriteLine(mensagem);
+        }
+        catch (TaskCanceledException)
+        {
+            mensagem = "A consulta demorou demais. Tente novamente.";
+            Console.WriteLine(mensagem);
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            mensagem = "A resposta da API não está no formato esperado.";
+            Console.WriteLine(mensagem);
+        }
+    }
+}
